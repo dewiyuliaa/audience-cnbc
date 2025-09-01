@@ -805,50 +805,6 @@ def get_last_30_days_range(df):
     start_date = max_date - timedelta(days=29)  # 30 days including end date
     return start_date, max_date
 
-# Function to auto-download CSV data
-def auto_download_csv(filtered_df):
-    """Generate CSV data for download"""
-    if not filtered_df.empty:
-        # Check if contact columns exist in the filtered data
-        contact_columns = []
-        
-        if 'full_name' in filtered_df.columns:
-            contact_columns.append('full_name')
-        if 'email' in filtered_df.columns:
-            contact_columns.append('email') 
-        if 'phone_number' in filtered_df.columns:
-            contact_columns.append('phone_number')
-        
-        if contact_columns:
-            # Create contact export data
-            contact_df = filtered_df[contact_columns].copy()
-            
-            # Fix phone number format to remove .0
-            if 'phone_number' in contact_df.columns:
-                contact_df['phone_number'] = contact_df['phone_number'].apply(
-                    lambda x: str(int(float(x))) if pd.notna(x) and str(x) != 'nan' else x
-                )
-            
-            # Rename columns to be more readable
-            column_mapping = {
-                'full_name': 'Full Name',
-                'email': 'Email', 
-                'phone_number': 'Phone Number'
-            }
-            contact_df = contact_df.rename(columns=column_mapping)
-            
-            # Remove duplicates if any
-            contact_df = contact_df.drop_duplicates()
-            
-            # Convert to CSV
-            csv_data = contact_df.to_csv(index=False)
-            
-            return csv_data, len(contact_df)
-        else:
-            return None, 0
-    else:
-        return None, 0
-
 # Load data
 df1, df2 = load_data()
 if df1 is None or df2 is None:
@@ -1171,30 +1127,6 @@ st.markdown(f"""
         border-bottom-color: #4f46e5;
     }}
     
-    /* Style the Export contact button to look like text */
-    button[title="Download contact data"] {{
-        background: transparent !important;
-        border: none !important;
-        color: #6b7280 !important;
-        font-weight: 500 !important;
-        padding: 12px 0 !important;
-        box-shadow: none !important;
-        text-decoration: none !important;
-        font-size: 0.95rem !important;
-    }}
-    button[title="Download contact data"]:hover {{
-        color: #4b5563 !important;
-        text-decoration: underline !important;
-        background: transparent !important;
-        border: none !important;
-    }}
-    button[title="Download contact data"]:focus {{
-        outline: none !important;
-        box-shadow: none !important;
-        background: transparent !important;
-        border: none !important;
-    }}
-    
     /* Audience Size Card Styling */
     .audience-size-card {{
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -1368,44 +1300,13 @@ if st.session_state.user_login:
     if selected_paylater and 'paylater_status' in current_df.columns:
         filtered_df = filtered_df[filtered_df['paylater_status'].isin(selected_paylater)]
 
-# Export contact section (KEEP POSITION)
-export_col1, export_col2, export_spacer, export_col3 = st.columns([1.8, 1.5, 3.7, 1.5])
-
-with export_col3:
-    # Only show Export contact for User Login mode
-    if st.session_state.user_login:
-        # Generate CSV data for potential download
-        csv_data, contact_count = auto_download_csv(filtered_df)
-        
-        if csv_data:
-            # Direct download button styled as Export contact button
-            st.download_button(
-                label="⬇️ Export contact",
-                data=csv_data,
-                file_name="contact_list.csv",
-                mime="text/csv",
-                key="direct_download",
-                help="Download contact data",
-                use_container_width=False
-            )
-        else:
-            # Show regular button if no data available
-            if st.button("⬇️ Export contact", key="data_btn", help="Download contact data"):
-                if not filtered_df.empty:
-                    st.warning("❌ No contact data (full_name, email, phone_number) available in the current dataset.")
-                else:
-                    st.error("❌ No data available for the selected filters.")
-    else:
-        # For User Non Login, show empty space or alternative content
-        st.markdown("")
-
 # Add bottom border (KEEP POSITION)
 st.markdown("""
-<div style='border-bottom: 1px solid #e2e8f0; margin-top: -7px; margin-bottom: 20px;'></div>
+<div style='border-bottom: 1px solid transparent; margin-top: -7px; margin-bottom: 20px;'></div>
 """, unsafe_allow_html=True)
 
 # Add some spacing before tab buttons
-st.markdown("<div style='margin-top: 5px;'></div>", unsafe_allow_html=True)
+st.markdown("<div style='margin-top: 60px;'></div>", unsafe_allow_html=True)
 
 # Audience overview tabs with Data download functionality (MOVED LOWER)
 tab_col1, tab_col2, spacer_col = st.columns([2.2, 1.5, 6.3])
@@ -1419,6 +1320,11 @@ with tab_col2:
     # Interests Tab Button
     if st.button("💡 Interests", key="interests_tab", use_container_width=True):
         st.session_state.active_tab = 'interests'
+
+# Add the visible grey line here
+st.markdown("""
+<div style='border-bottom: 1px solid #e2e8f0; margin-top: -50px; margin-bottom: 20px;'></div>
+""", unsafe_allow_html=True)
 
 # Add CSS to style the tab buttons
 st.markdown(f"""
@@ -1467,16 +1373,11 @@ div[data-testid="column"]:nth-child(2) .stButton > button:focus {{
 </style>
 """, unsafe_allow_html=True)
 
-# Initialize download trigger state
-if 'download_triggered' not in st.session_state:
-    st.session_state.download_triggered = False
-
 # Main content based on active tab
 if not filtered_df.empty:
     if st.session_state.active_tab == 'overview':
         # AUDIENCE OVERVIEW TAB CONTENT
         # AUDIENCE SIZE AND TREND SECTION - MOVED TO TOP
-        st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
         
         # Calculate audience size estimation
         if st.session_state.user_login:
